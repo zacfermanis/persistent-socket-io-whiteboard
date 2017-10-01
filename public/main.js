@@ -6,7 +6,11 @@
     var canvas = document.getElementsByClassName('whiteboard')[0];
     var colors = document.getElementsByClassName('color');
     var tools = document.getElementsByClassName('tool');
+    var menus = document.getElementsByClassName('menu');
+    var boardId = document.getElementById('boardId');
+    var pin = document.getElementById('pin');
     var context = canvas.getContext('2d');
+
 
     var story = {
         width: 10,
@@ -43,8 +47,11 @@
         tools[j].addEventListener('click', onToolUpdate, false);
     }
 
-    socket.on('pen', onDrawingEvent);
-    socket.on('story', onStoryEvent);
+    for (var k = 0; k < menus.length; k++) {
+        menus[k].addEventListener('click', onMenuUpdate, false);
+    }
+
+
     socket.on('update', onUpdateEvent);
 
     window.addEventListener('resize', onResize, false);
@@ -102,9 +109,11 @@
     function drawStory(x, y, color, text, emit) {
         var w = canvas.width;
         var h = canvas.height;
+        context.beginPath();
         context.strokeStyle = color;
         context.rect(x * w,y * h, w * (story.width / 100), h * (story.height / 100));
         context.stroke();
+        context.closePath();
 
         // TODO - Add text
     }
@@ -120,8 +129,9 @@
             shape.y1 = shape.y1 / h;
         }
         socket.emit('update', {
-            shapes: current.shapes
-        })
+            shapes: current.shapes,
+            boardId: boardId
+        });
     }
 
     function redrawShapes() {
@@ -132,9 +142,10 @@
             var l = shapes.length;
             for (var i = 0; i < l; i++) {
                 var shape = shapes[i];
-                // Skip Out of bounds or empty shapes
-                if (shape.x0 > canvas.width || shape.y0 > canvas.height ||
-                    shape.x0 + shape.w < 0 || shape.y0 + shape.h < 0) continue;
+                shape = new Shape(shape.x0, shape.y0, shape.type, shape.color, shape.text, shape.x1, shape.y1);
+                // // Skip Out of bounds or empty shapes
+                // if (shape.x0 > canvas.width || shape.y0 > canvas.height ||
+                //     shape.x0 + shape.w < 0 || shape.y0 + shape.h < 0) continue;
                 shape.draw();
             }
 
@@ -250,6 +261,15 @@
         current.tool = e.target.className.split(' ')[1];
     }
 
+    function onMenuUpdate(e) {
+        var menuItem = e.target.className.split(' ')[1];
+        if (menuItem === 'clear') {
+            current.shapes = [];
+            emitUpdate();
+            redrawShapes();
+        }
+    }
+
     // limit the number of events per second
     function throttle(callback, delay) {
         var previousCall = new Date().getTime();
@@ -282,16 +302,17 @@
         var w = canvas.width;
         var h = canvas.height;
         var shapes = data.shapes;
-        var updatedShapes = [];
-        for (var i = 0; i < shapes.length; i++) {
-            var shape = shapes[i];
-            shape.x0 = shape.x0 * w;
-            shape.x1 = shape.x1 * w;
-            shape.y0 = shape.y0 * h;
-            shape.y1 = shape.y1 * h;
-            updatedShapes.push(shape);
-        }
-        current.shapes = updatedShapes;
+        // var updatedShapes = [];
+        // for (var i = 0; i < shapes.length; i++) {
+        //     var shape = shapes[i];
+        //     shape.x0 = shape.x0 * w;
+        //     shape.x1 = shape.x1 * w;
+        //     shape.y0 = shape.y0 * h;
+        //     shape.y1 = shape.y1 * h;
+        //     updatedShapes.push(shape);
+        // }
+        //current.shapes = updatedShapes;
+        current.shapes = data.shapes;
         redrawShapes();
     }
 
@@ -306,6 +327,6 @@
     var selectionColor = '#CC0000';
     var selectionWidth = 2;
     var interval = 30;
-    setInterval(function() {redrawShapes(); }, interval);
+    // setInterval(function() {redrawShapes(); }, interval);
 
 })();

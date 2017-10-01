@@ -5,52 +5,39 @@ const io = require('socket.io')(http);
 const port = process.env.PORT || 3000;
 const mongo = require('mongodb').MongoClient;
 
-mongo.connect('mongodb://localhost:27017/pen', (error, db) => {
+mongo.connect('mongodb://localhost:27017/boards', (error, db) => {
 	if (error) throw error;
 	console.log('Connected to DB');
 	app.use(express.static(__dirname + '/public'));
 
 	function onConnection(socket) {
 		console.log('client connected');
-		db.collection('pen').find().sort({timestamp:1}).forEach((data, error) => {
-			socket.emit('pen', data);
+		db.collection('boards').find({boardId:1}).forEach((data, error) => {
+			socket.emit('update', data);
 			if (error) console.log(error);
 		});
 
-		socket.on('pen', (data) => {
+		socket.on('update', (data) => {
 			data.timestamp = new Date();
-			db.collection('pen').save(data, (error, result) => {
+			db.collection('boards').save(data, (error, result) => {
 				if (error) console.log(error);
 			});
-			socket.broadcast.emit('pen', data);
+			socket.broadcast.emit('update', data);
 		});
 
-
-        db.collection('story').find().sort({timestamp:1}).forEach((data, error) => {
-            socket.emit('story', data);
-        if (error) console.log(error);
-    	});
-
-        socket.on('story', (data) => {
-            data.timestamp = new Date();
-        db.collection('story').save(data, (error, result) => {
-            if (error) console.log(error);
-    	});
-        socket.broadcast.emit('story', data);
-    	});
-
-        db.collection('update').find().sort({timestamp:1}).forEach((data, error) => {
-            socket.emit('update', data);
-            if (error) console.log(error);
-        });
-
-        socket.on('update', (data) => {
-            data.timestamp = new Date();
-            db.collection('update').save(data, (error, result) => {
-                if (error) console.log(error);
-            });
-            socket.broadcast.emit('update', data);
-        });
+        //
+        // db.collection('update').find().sort({timestamp:1}).forEach((data, error) => {
+        //     socket.emit('update', data);
+        //     if (error) console.log(error);
+        // });
+        //
+        // socket.on('update', (data) => {
+        //     data.timestamp = new Date();
+        //     db.collection('update').save(data, (error, result) => {
+        //         if (error) console.log(error);
+        //     });
+        //     socket.broadcast.emit('update', data);
+        // });
 
 
 	}
