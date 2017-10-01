@@ -39,6 +39,19 @@ mongo.connect('mongodb://localhost:27017/pen', (error, db) => {
         socket.broadcast.emit('story', data);
     	});
 
+        db.collection('update').find().sort({timestamp:1}).forEach((data, error) => {
+            socket.emit('update', data);
+            if (error) console.log(error);
+        });
+
+        socket.on('update', (data) => {
+            data.timestamp = new Date();
+            db.collection('update').save(data, (error, result) => {
+                if (error) console.log(error);
+            });
+            socket.broadcast.emit('update', data);
+        });
+
 
 	}
 
